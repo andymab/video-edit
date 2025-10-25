@@ -2,24 +2,12 @@
   <v-sheet class="pa-4" rounded="lg" border>
     <div class="text-subtitle-1 mb-3">Снимок кадра</div>
 
-    <v-file-input
-      label="Видео для снимка"
-      accept="video/*"
-      prepend-icon="mdi-filmstrip"
-      :multiple="false"
-      @update:model-value="onFileChange"
-    />
+    <v-file-input label="Видео для снимка" accept="video/*" prepend-icon="mdi-filmstrip" :multiple="false"
+      @update:model-value="onFileChange" />
 
     <div v-if="src" class="my-4">
-      <video
-        ref="player"
-        :src="src"
-        controls
-        preload="metadata"
-        style="width:100%; max-height:360px;"
-        @loadedmetadata="onLoadedMetadata"
-        @timeupdate="onTimeUpdate"
-      />
+      <video ref="player" :src="src" controls preload="metadata" style="width:100%; max-height:360px;"
+        @loadedmetadata="onLoadedMetadata" @timeupdate="onTimeUpdate" />
 
       <!-- Скраббер текущей позиции -->
       <div class="mt-3">
@@ -27,63 +15,21 @@
           <span class="text-caption">0</span>
           <span class="text-caption">{{ Math.floor(duration) }} c</span>
         </div>
-        <v-slider
-          :model-value="current"
-          :min="0"
-          :max="duration || 0"
-          step="0.05"
-          :disabled="!duration"
-          @update:model-value="scrubTo"
-          thumb-label
-          class="mt-1"
-        />
+        <v-slider :model-value="current" :min="0" :max="duration || 0" step="0.05" :disabled="!duration"
+          @update:model-value="scrubTo" thumb-label class="mt-1" />
       </div>
 
       <!-- Параметры снимка -->
       <div class="d-flex flex-wrap ga-3 mt-4">
-        <v-text-field
-          v-model.number="timeSec"
-          type="number"
-          label="Время, сек"
-          :min="0"
-          :max="duration || undefined"
-          style="max-width: 160px"
-          hint="Оставь пустым — возьмём текущую позицию"
-          persistent-hint
-        />
-        <v-select
-          v-model="format"
-          :items="formatItems"
-          label="Формат"
-          style="max-width: 140px"
-        />
-        <v-text-field
-          v-model.number="quality"
-          type="number"
-          label="Качество (0–100)"
-          :min="0" :max="100"
-          style="max-width: 160px"
-          hint="Для JPG/WEBP"
-          persistent-hint
-        />
-        <v-text-field
-          v-model.number="outWidth"
-          type="number"
-          label="Ширина (опц.)"
-          :min="1"
-          style="max-width: 160px"
-          hint="Если пусто — исходный размер"
-          persistent-hint
-        />
-        <v-text-field
-          v-model.number="outHeight"
-          type="number"
-          label="Высота (опц.)"
-          :min="1"
-          style="max-width: 160px"
-          hint="Если пусто — по пропорциям"
-          persistent-hint
-        />
+        <v-text-field v-model.number="timeSec" type="number" label="Время, сек" :min="0" :max="duration || undefined"
+          style="max-width: 160px" hint="Оставь пустым — возьмём текущую позицию" persistent-hint />
+        <v-select v-model="format" :items="formatItems" label="Формат" style="max-width: 140px" />
+        <v-text-field v-model.number="quality" type="number" label="Качество (0–100)" :min="0" :max="100"
+          style="max-width: 160px" hint="Для JPG/WEBP" persistent-hint />
+        <v-text-field v-model.number="outWidth" type="number" label="Ширина (опц.)" :min="1" style="max-width: 160px"
+          hint="Если пусто — исходный размер" persistent-hint />
+        <v-text-field v-model.number="outHeight" type="number" label="Высота (опц.)" :min="1" style="max-width: 160px"
+          hint="Если пусто — по пропорциям" persistent-hint />
       </div>
 
       <!-- Кнопки -->
@@ -91,19 +37,14 @@
         <v-btn color="primary" :disabled="!file || working" @click="shotCanvas">
           Снимок (Canvas)
         </v-btn>
-        <v-btn color="secondary" :loading="working || ffLoading" :disabled="!file || working || ffLoading" @click="shotFFmpeg">
+        <v-btn color="secondary" :loading="working || ffLoading" :disabled="!file || working || ffLoading"
+          @click="shotFFmpeg">
           Снимок (FFmpeg, точно)
         </v-btn>
       </div>
 
-      <v-progress-linear
-        v-if="working || ffLoading"
-        class="mt-4"
-        :model-value="ffProgress"
-        height="8"
-        striped
-        rounded
-      />
+      <v-progress-linear v-if="working || ffLoading" class="mt-4" :model-value="ffProgress" height="8" striped
+        rounded />
 
       <v-alert v-if="message" type="info" variant="tonal" class="mt-3">
         {{ message }}
@@ -123,6 +64,7 @@
 
 <script>
 import { markRaw } from 'vue'
+import { getFFmpeg } from '@/lib/ffmpeg'
 
 export default {
   name: 'SnapshotEditor',
@@ -152,6 +94,7 @@ export default {
       ffLoading: false,
       ffProgress: 0,
       _ffmpeg: null,
+      _progressHookSet: false,
       _coreURL: null,
       _wasmURL: null,
 
@@ -232,8 +175,8 @@ export default {
       ctx.drawImage(video, 0, 0, targetW, targetH)
 
       const mime = this.format === 'png' ? 'image/png'
-                 : this.format === 'webp' ? 'image/webp'
-                 : 'image/jpeg'
+        : this.format === 'webp' ? 'image/webp'
+          : 'image/jpeg'
       const q = Math.min(1, Math.max(0, (Number(this.quality) || 90) / 100))
 
       const blob = await new Promise(res => can.toBlob(res, mime, q))
@@ -264,39 +207,19 @@ export default {
       this.ffProgress = 0
       this.message = 'Загрузка FFmpeg…'
       try {
-        const { FFmpeg } = await import('@ffmpeg/ffmpeg')
-        const { toBlobURL } = await import('@ffmpeg/util')
-
-        if (!this._coreURL || !this._wasmURL) {
-          const cdn = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm'
-          this._coreURL = await toBlobURL(`${cdn}/ffmpeg-core.js`, 'text/javascript')
-          this._wasmURL = await toBlobURL(`${cdn}/ffmpeg-core.wasm`, 'application/wasm')
-        }
-
-        this._ffmpeg = markRaw(new FFmpeg())
-        this._ffmpeg.on('progress', ({ progress }) => {
-          this.ffProgress = Math.round(((progress || 0) * 100))
-        })
-
-        try {
-          await this._ffmpeg.load({ coreURL: this._coreURL, wasmURL: this._wasmURL })
-        } catch (cdnErr) {
-          console.warn('[Snapshot] CDN недоступен, пробуем локально /ffmpeg/esm', cdnErr)
-          const base = '/ffmpeg/esm'
-          this._coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript')
-          this._wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm')
-          this._ffmpeg = markRaw(new FFmpeg())
+        const inst = await getFFmpeg()        // ← единый синглтон
+        this._ffmpeg = markRaw(inst)
+        if (!this._progressHookSet && this._ffmpeg?.on) {
           this._ffmpeg.on('progress', ({ progress }) => {
             this.ffProgress = Math.round(((progress || 0) * 100))
           })
-          await this._ffmpeg.load({ coreURL: this._coreURL, wasmURL: this._wasmURL })
+          this._progressHookSet = true
         }
-
         this.ffReady = true
         this.message = ''
       } catch (e) {
-        console.error('[Snapshot/FFmpeg.load] error:', e)
-        this.message = `Ошибка загрузки FFmpeg: ${e?.message || e}`
+        console.error('[Snapshot/ensureFFmpeg]', e)
+        this.message = `Не удалось загрузить FFmpeg: ${e?.message || e}`
       } finally {
         this.ffLoading = false
       }
@@ -318,8 +241,8 @@ export default {
 
         const t = this._normalizeTime()
         const outName = this.format === 'png' ? 'frame.png'
-                      : this.format === 'webp' ? 'frame.webp'
-                      : 'frame.jpg'
+          : this.format === 'webp' ? 'frame.webp'
+            : 'frame.jpg'
         const args = [
           '-ss', String(t),
           '-i', 'in.mp4',
@@ -353,10 +276,10 @@ export default {
         console.error('[shotFFmpeg] error:', e)
         this.message = `Ошибка снимка: ${e?.message || e}`
       } finally {
-        try { await this._ffmpeg.deleteFile('in.mp4') } catch {}
-        try { await this._ffmpeg.deleteFile('frame.jpg') } catch {}
-        try { await this._ffmpeg.deleteFile('frame.png') } catch {}
-        try { await this._ffmpeg.deleteFile('frame.webp') } catch {}
+        try { await this._ffmpeg.deleteFile('in.mp4') } catch { }
+        try { await this._ffmpeg.deleteFile('frame.jpg') } catch { }
+        try { await this._ffmpeg.deleteFile('frame.png') } catch { }
+        try { await this._ffmpeg.deleteFile('frame.webp') } catch { }
         this.working = false
       }
     },

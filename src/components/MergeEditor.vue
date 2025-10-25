@@ -2,49 +2,35 @@
   <v-sheet class="pa-4" rounded="lg" border>
     <div class="text-subtitle-1 mb-3">Склейка клипов</div>
 
-    <v-file-input
-      label="Клипы (можно несколько)"
-      accept="video/*"
-      prepend-icon="mdi-movie"
-      :multiple="true"
-      @update:model-value="onMergeFilesChange"
-    />
+    <v-file-input label="Клипы (можно несколько)" accept="video/*" prepend-icon="mdi-movie" :multiple="true"
+      @update:model-value="onMergeFilesChange" />
 
     <v-alert v-if="files.length === 0" type="info" variant="tonal" class="mt-3">
       Добавьте 2+ клипа. Порядок можно менять стрелками.
     </v-alert>
 
     <div v-else class="mt-3">
-      <v-list density="compact" lines="one" class="border rounded"> 
-        <v-list-item
-          v-for="(f, i) in files"
-          :key="i"
-          :title="f.name"
-          :subtitle="formatSize(f.size)"
-        >
+      <v-list density="compact" lines="one" class="border rounded">
+        <v-list-item v-for="(f, i) in files" :key="i" :title="f.name" :subtitle="formatSize(f.size)">
           <template #append>
-            <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="moveUp(i)" :disabled="i===0" />
-            <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="moveDown(i)" :disabled="i===files.length-1" />
+            <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="moveUp(i)" :disabled="i === 0" />
+            <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="moveDown(i)"
+              :disabled="i === files.length - 1" />
             <v-btn icon="mdi-close" size="small" variant="text" @click="removeAt(i)" />
           </template>
         </v-list-item>
       </v-list>
 
       <div class="d-flex flex-wrap ga-3 mt-3">
-        <v-btn color="primary" :loading="working || ffLoading" :disabled="files.length < 2 || working || ffLoading" @click="merge">
+        <v-btn color="primary" :loading="working || ffLoading" :disabled="files.length < 2 || working || ffLoading"
+          @click="merge">
           Склеить
         </v-btn>
         <v-btn variant="text" @click="clearList" :disabled="working || ffLoading">Очистить список</v-btn>
       </div>
 
-      <v-progress-linear
-        v-if="working || ffLoading"
-        class="mt-4"
-        :model-value="ffProgress"
-        height="8"
-        striped
-        rounded
-      />
+      <v-progress-linear v-if="working || ffLoading" class="mt-4" :model-value="ffProgress" height="8" striped
+        rounded />
 
       <v-alert v-if="message" type="info" variant="tonal" class="mt-3">
         {{ message }}
@@ -63,6 +49,7 @@
 
 <script>
 import { markRaw } from 'vue'
+import { getFFmpeg } from '@/lib/ffmpeg'
 
 export default {
   name: 'MergeEditor',
@@ -77,6 +64,7 @@ export default {
       ffLoading: false,
       ffProgress: 0,
       _ffmpeg: null,
+      _progressHookSet: false,
       _coreURL: null,
       _wasmURL: null,
 
@@ -91,44 +79,21 @@ export default {
       this.ffProgress = 0
       this.message = 'Загрузка FFmpeg…'
       try {
-        const { FFmpeg } = await import('@ffmpeg/ffmpeg')
-        const { toBlobURL } = await import('@ffmpeg/util')
-
-        // CDN blob URLs (кэшируем)
-        if (!this._coreURL || !this._wasmURL) {
-          const cdn = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm'
-          this._coreURL = await toBlobURL(`${cdn}/ffmpeg-core.js`, 'text/javascript')
-          this._wasmURL = await toBlobURL(`${cdn}/ffmpeg-core.wasm`, 'application/wasm')
-        }
-
-        // инстанс с прогрессом
-        this._ffmpeg = markRaw(new FFmpeg())
-        this._ffmpeg.on('progress', ({ progress }) => {
-          this.ffProgress = Math.round(((progress || 0) * 100))
-        })
-
-        // пробуем CDN
-        try {
-          await this._ffmpeg.load({ coreURL: this._coreURL, wasmURL: this._wasmURL })
-        } catch (cdnErr) {
-          console.warn('[Merge] CDN недоступен, пробуем локально /ffmpeg/esm', cdnErr)
-          // fallback: локально из public/ffmpeg/esm (если положишь файлы)
-          const { toBlobURL } = await import('@ffmpeg/util')
-          const base = '/ffmpeg/esm'
-          this._coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript')
-          this._wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm')
-          this._ffmpeg = markRaw(new FFmpeg())
+        const inst = await getFFmpeg()      // ← единый синглтон
+        this._ffmpeg = markRaw(inst)
+        // навешиваем прогресс-слушатель один раз на компонент
+        if (!this._progressHookSet && this._ffmpeg?.on) {
           this._ffmpeg.on('progress', ({ progress }) => {
+            // progress ∈ [0..1]
             this.ffProgress = Math.round(((progress || 0) * 100))
           })
-          await this._ffmpeg.load({ coreURL: this._coreURL, wasmURL: this._wasmURL })
+          this._progressHookSet = true
         }
-
         this.ffReady = true
         this.message = ''
       } catch (e) {
-        console.error('[Merge/FFmpeg.load] error:', e)
-        this.message = `Ошибка загрузки FFmpeg: ${e?.message || e}`
+        console.error('[Merge/ensureFFmpeg]', e)
+        this.message = `Не удалось загрузить FFmpeg: ${e?.message || e}`
       } finally {
         this.ffLoading = false
       }
@@ -148,13 +113,13 @@ export default {
     moveUp(i) {
       if (i <= 0) return
       const a = this.files.slice()
-      ;[a[i - 1], a[i]] = [a[i], a[i - 1]]
+        ;[a[i - 1], a[i]] = [a[i], a[i - 1]]
       this.files = a
     },
     moveDown(i) {
       if (i >= this.files.length - 1) return
       const a = this.files.slice()
-      ;[a[i + 1], a[i]] = [a[i], a[i + 1]]
+        ;[a[i + 1], a[i]] = [a[i], a[i + 1]]
       this.files = a
     },
     removeAt(i) {
@@ -255,10 +220,10 @@ export default {
         this.message = `Ошибка склейки: ${e?.message || e}`
       } finally {
         // Чистим временные
-        try { await this._ffmpeg.deleteFile('out-merge.mp4') } catch {}
-        try { await this._ffmpeg.deleteFile('list.txt') } catch {}
+        try { await this._ffmpeg.deleteFile('out-merge.mp4') } catch { }
+        try { await this._ffmpeg.deleteFile('list.txt') } catch { }
         for (let i = 0; i < this.files.length; i++) {
-          try { await this._ffmpeg.deleteFile(`clip${i}.mp4`) } catch {}
+          try { await this._ffmpeg.deleteFile(`clip${i}.mp4`) } catch { }
         }
         this.working = false
       }
