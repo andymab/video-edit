@@ -1,13 +1,16 @@
 import { createApp } from 'vue'
 // import './style.css'
-import App from './App.vue'
+import App from '@/App.vue'
 
-import { vuetify } from './plugins/vuetify'
 import { router } from '@/router'
 
-createApp(App)
-    .use(vuetify)
+import { vuetify } from '@/plugins/vuetify'
+
+
+const app = createApp(App)
     .use(router)
-    .mount('#app')
-
-
+    .use(vuetify)
+    
+router.isReady().then(() => {
+  app.mount('#app')
+})
