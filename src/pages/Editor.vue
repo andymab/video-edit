@@ -20,12 +20,9 @@
                 <MergeEditor />
             </v-window-item>
 
-            <v-window-item value="snapshot">
-                <v-sheet class="pa-4" rounded="lg" border>
-                    <div class="text-subtitle-1 mb-3">Снимок кадра</div>
-                    <v-alert type="warning" variant="tonal">Скоро добавим.</v-alert>
-                </v-sheet>
-            </v-window-item>
+      <v-window-item value="snapshot">
+        <SnapshotEditor />
+      </v-window-item>
         </v-window>
     </v-card>
 </template>
@@ -33,10 +30,11 @@
 <script>
 import TrimEditor from '@/components/TrimEditor.vue'
 import MergeEditor from '@/components/MergeEditor.vue'
+import SnapshotEditor from '@/components/SnapshotEditor.vue'
 
 export default {
     name: 'Editor',
-    components: { TrimEditor, MergeEditor },
+    components: { TrimEditor, MergeEditor, SnapshotEditor },
     data() {
         return { tab: 'trim' }
     },
