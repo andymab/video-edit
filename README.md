@@ -1,5 +1,3 @@
-Вот компактный, но полный README для твоего проекта. Можешь положить его в корень как `README.md`.
-
 ---
 
 # Video Edit (Vue 3 + Vite + Vuetify 3 + FFmpeg.wasm)
