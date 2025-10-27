@@ -7,6 +7,7 @@
             <v-tab value="trim">Обрезка</v-tab>
             <v-tab value="merge">Склейка</v-tab>
             <v-tab value="mergeimage">Склейка (видео+фото)</v-tab>
+            <v-tab value="audio">Звук</v-tab>
             <v-tab value="snapshot">Снимок кадра</v-tab>
         </v-tabs>
 
@@ -26,6 +27,10 @@
                 <MergeEditorWithImage />
             </v-window-item>
 
+            <v-window-item value="audio">
+                <AudioOverlayEditor />
+            </v-window-item>
+
             <v-window-item value="snapshot">
                 <SnapshotEditor />
             </v-window-item>
@@ -38,11 +43,12 @@
 import TrimEditor from '@/components/TrimEditor.vue'
 import MergeEditor from '@/components/MergeEditor.vue'
 import MergeEditorWithImage from '@/components/MergeEditorWithImage.vue'
+import AudioOverlayEditor from '@/components/AudioOverlayEditor.vue'
 import SnapshotEditor from '@/components/SnapshotEditor.vue'
 
 export default {
     name: 'Editor',
-    components: { TrimEditor, MergeEditor, SnapshotEditor, MergeEditorWithImage },
+    components: { TrimEditor, MergeEditor, SnapshotEditor, MergeEditorWithImage, AudioOverlayEditor },
     data() {
         return { tab: 'trim' }
     },
