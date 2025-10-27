@@ -6,6 +6,7 @@
         <v-tabs v-model="tab" class="mt-4">
             <v-tab value="trim">Обрезка</v-tab>
             <v-tab value="merge">Склейка</v-tab>
+            <v-tab value="mergeimage">Склейка (видео+фото)</v-tab>
             <v-tab value="snapshot">Снимок кадра</v-tab>
         </v-tabs>
 
@@ -20,9 +21,15 @@
                 <MergeEditor />
             </v-window-item>
 
-      <v-window-item value="snapshot">
-        <SnapshotEditor />
-      </v-window-item>
+            <!-- Склейка c фото -->
+            <v-window-item value="mergeimage">
+                <MergeEditorWithImage />
+            </v-window-item>
+
+            <v-window-item value="snapshot">
+                <SnapshotEditor />
+            </v-window-item>
+
         </v-window>
     </v-card>
 </template>
@@ -30,11 +37,12 @@
 <script>
 import TrimEditor from '@/components/TrimEditor.vue'
 import MergeEditor from '@/components/MergeEditor.vue'
+import MergeEditorWithImage from '@/components/MergeEditorWithImage.vue'
 import SnapshotEditor from '@/components/SnapshotEditor.vue'
 
 export default {
     name: 'Editor',
-    components: { TrimEditor, MergeEditor, SnapshotEditor },
+    components: { TrimEditor, MergeEditor, SnapshotEditor, MergeEditorWithImage },
     data() {
         return { tab: 'trim' }
     },
